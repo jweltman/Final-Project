@@ -2,7 +2,6 @@ library(leaflet)
 
 # Decide what variables we want to make available to color and size the
 # markers by.
-#
 vars <- c(
   "# of Fatalities" = "nkill",
   "Attack Type" = "attacktype1_txt"

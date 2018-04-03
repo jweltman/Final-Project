@@ -15,10 +15,6 @@ function(input, output, session) {
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
-      # addTiles(
-      #   urlTemplate = "//{s}.tiles.mapbox.com/v3/jcheng.map-5ebohr46/{z}/{x}/{y}.png",
-      #   attribution = 'Maps by <a href="http://www.mapbox.com/">Mapbox</a>'
-      # ) %>%
       setView(lat = 29.119758, lng = -171.594481, zoom = 2)
   })
   
