@@ -1,5 +1,4 @@
 get_gtddb <- function() {
-  dplyr::tbl(
     DBI::dbConnect(
       RMySQL::MySQL(),
       host="gtd-dev.cddrif03m2ft.us-east-2.rds.amazonaws.com",
@@ -7,7 +6,5 @@ get_gtddb <- function() {
       dbname="gtd",
       user="gtdmaster",
       password="gtdmaster"
-    ),
-    "events"
-  )
+    )
 }

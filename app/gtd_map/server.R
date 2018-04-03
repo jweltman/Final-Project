@@ -4,7 +4,8 @@ library(scales)
 library(lattice)
 library(dplyr)
 
-gtd_tbl <- get_gtddb() 
+gtd_tbl <- get_gtddb() %>%
+  tbl("events")
 
 function(input, output, session) {
   
