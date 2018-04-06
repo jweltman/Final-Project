@@ -4,9 +4,11 @@ library(scales)
 library(lattice)
 library(dplyr)
 
-gtd_tbl <- get_gtddb() %>%
-  tbl("events")
+# couldn't make connection, so commenting some snippits below out in case it doesn't work on tbl, ha!
 
+gtd_tbl <- get_gtddb() %>%
+  tbl("events") # %>%
+  # filter(doubtterr==0)
 function(input, output, session) {
   
   ## Interactive Map ###########################################
