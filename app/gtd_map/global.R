@@ -1,5 +1,6 @@
-get_gtddb <- function() {
-    DBI::dbConnect(
+library(pool)
+
+get_gtddb <- dbPool(
       RMySQL::MySQL(),
       host="gtd-dev.cddrif03m2ft.us-east-2.rds.amazonaws.com",
       port=3306,
@@ -7,4 +8,3 @@ get_gtddb <- function() {
       user="gtdmaster",
       password="gtdmaster"
     )
-}

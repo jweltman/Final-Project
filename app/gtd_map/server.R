@@ -6,9 +6,22 @@ library(dplyr)
 
 # couldn't make connection, so commenting some snippits below out in case it doesn't work on tbl, ha!
 
-gtd_tbl <- get_gtddb() %>%
-  tbl("events") # %>%
-  # filter(doubtterr==0)
+# gtd_tbl <- get_gtddb() %>%
+#  tbl("events") 
+
+confirmed_db <- tbl(get_gtddb,"events")
+confirmed_attacks <- confirmed_db %>%
+  select(iyear,country_txt,provstate,city,latitude,longitude,attacktype1_txt,targtype1,
+         targtype1_txt,claimed,property,propvalue, doubtterr, success) %>%
+  rename(Year=iyear,Country=country_txt) %>%
+  filter(doubtterr==0 & success==1) %>%
+  select(-doubtterr,-success)
+
+total_attacks <- confirmed_attacks %>%
+  group_by(Country) %>%
+  tally() %>%
+  rename(TotalSuccessfulAttacks = n)
+
 function(input, output, session) {
   
   ## Interactive Map ###########################################
@@ -20,6 +33,7 @@ function(input, output, session) {
       setView(lat = 29.119758, lng = -171.594481, zoom = 2)
   })
   
+  #   hist(zipsInBounds()$centile,
   # A reactive expression that returns the set of zips that are
   # in bounds right now
   zipsInBounds <- reactive({
@@ -42,7 +56,6 @@ function(input, output, session) {
   #   if (nrow(zipsInBounds()) == 0)
   #     return(NULL)
   #   
-  #   hist(zipsInBounds()$centile,
   #        breaks = centileBreaks,
   #        main = "SuperZIP score (visible zips)",
   #        xlab = "Percentile",
