@@ -17,10 +17,27 @@ confirmed_attacks <- confirmed_db %>%
   filter(doubtterr==0 & success==1) %>%
   select(-doubtterr,-success)
 
-total_attacks <- confirmed_attacks %>%
+total_attacks_by_country <- confirmed_attacks %>%
   group_by(Country) %>%
   tally() %>%
   rename(TotalSuccessfulAttacks = n)
+
+total_attacks_by_decade <- confirmed_attacks %>%
+  select(Year,Country) %>%
+  mutate(Decade = case_when(
+    Year >= 1970 & Year < 1980 ~ "1970s",
+    Year >= 1980 & Year < 1990 ~ "1980s",
+    Year >= 1990 & Year < 2000 ~ "1990s",
+    Year >= 2000 & Year < 2010 ~ "2000s",
+    Year >= 2010 ~ "2010s"
+  )) %>%
+  group_by(Decade,Country) %>%
+  tally() %>%
+  rename(TotalSuccessfulAttacks = n)
+
+get_totals <- collect(total_attacks)
+get_totals_by_country <- collect(total_attacks_by_country)
+get_totals_by_decade <- collect(total_attacks_by_decade)
 
 function(input, output, session) {
   
