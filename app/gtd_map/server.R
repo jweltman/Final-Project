@@ -1,4 +1,5 @@
 library(leaflet)
+library(leaflet.extras)
 library(RColorBrewer)
 library(scales)
 library(lattice)
@@ -15,12 +16,20 @@ confirmed_attacks <- confirmed_db %>%
          targtype1_txt,claimed,property,propextent,propvalue,doubtterr,success,gname) %>%
   rename(Year=iyear,Country=country_txt) %>%
   filter(doubtterr==0 & success==1) %>%
+  filter(!is.na(latitude)) %>%
   select(-doubtterr,-success)
 
+ 
 total_attacks_by_country <- confirmed_attacks %>%
   group_by(Country) %>%
   tally() %>%
   rename(TotalSuccessfulAttacks = n)
+
+total_attacks_by_location <- confirmed_attacks %>%
+  filter(!is.na(latitude)) %>%
+  group_by(latitude,longitude) %>%
+  tally() %>%
+  rename(LocationTotal = n)
 
 total_attacks_by_decade <- confirmed_attacks %>%
   select(Year,Country) %>%
@@ -60,11 +69,15 @@ total_property_damage <- confirmed_attacks %>%
     )
   )
   
-get_totals <- collect(total_attacks)
+get_totals <- collect(confirmed_attacks)
 get_totals_by_country <- collect(total_attacks_by_country)
 get_totals_by_decade <- collect(total_attacks_by_decade)
 get_totals_telecome_and_utility <- collect(total_telecom_and_utility_attacks)
 get_totals_property_damage <- collect(total_property_damage)
+get_totals_by_location <- collect(total_attacks_by_location)
+
+# total_attacks_plus_cntry_total <- merge(x=get_totals,y=get_totals_by_country, by="Country", all.x=TRUE)
+total_attacks_plus_location_total <- merge(x=get_totals,y=get_totals_by_location, by=c("latitude","longitude"), all.x=TRUE)
 
 function(input, output, session) {
   
@@ -73,8 +86,9 @@ function(input, output, session) {
   # Define color palette for attacks
   
   pal <- colorFactor(
-    palette = 'Dark2',
-    domain = map$attacktype1_txt
+    #palette = 'Dark2',
+    palette = c('red','blue','green','purple','orange','pink','yellow','brown','gray'),
+    domain = confirmed_attacks$attacktype1_txt
   )
   
   # Create the map
@@ -87,17 +101,17 @@ function(input, output, session) {
   #   hist(zipsInBounds()$centile,
   # A reactive expression that returns the set of zips that are
   # in bounds right now
-  zipsInBounds <- reactive({
-    if (is.null(input$map_bounds))
-      return(gtd_tbl[FALSE,])
-    bounds <- input$map_bounds
-    latRng <- range(bounds$north, bounds$south)
-    lngRng <- range(bounds$east, bounds$west)
-    
-    subset(gtd_tbl,
-           latitude >= latRng[1] & latitude <= latRng[2] &
-             longitude >= lngRng[1] & longitude <= lngRng[2])
-  })
+  #zipsInBounds <- reactive({
+  # if (is.null(input$map_bounds))
+  #  return(gtd_tbl[FALSE,])
+  #  bounds <- input$map_bounds
+  #  latRng <- range(bounds$north, bounds$south)
+  #  lngRng <- range(bounds$east, bounds$west)
+  #  
+  #  subset(gtd_tbl,
+  #         latitude >= latRng[1] & latitude <= latRng[2] &
+  #           longitude >= lngRng[1] & longitude <= lngRng[2])
+  #})
   
   # Precalculate the breaks we'll need for the two histograms
   # centileBreaks <- hist(plot = FALSE, allzips$centile, breaks = 20)$breaks
@@ -126,47 +140,53 @@ function(input, output, session) {
   # This observer is responsible for maintaining the circles and legend,
   # according to the variables the user has chosen to map to color and size.
   observe({
-    colorBy <- input$color
-    sizeBy <- input$size
-
- 
-    colorData <- gtd_tbl %>%
-      select(colorBy) %>%
-      collect()
+  #  colorBy <- input$color
+  #  sizeBy <- input$size
+  #
+  #
+  # colorData <- gtd_tbl %>%
+  #    select(colorBy) %>%
+  #    collect()
     
-    pal <- brewer_pal("qual")(8)
+  #  pal <- brewer_pal("qual")(8)
 
-    sizeData <- gtd_tbl %>%
-      select(sizeBy) %>%
-      collect()
+  #  sizeData <- gtd_tbl %>%
+  #    select(sizeBy) %>%
+  #    collect()
     
-    radius <- sizeData / max(sizeData) * 30000
+  #  radius <- sizeData / max(sizeData) * 30000
 
-    leafletProxy("map", data = gtd_tbl %>% collect()) %>%
+    leafletProxy("map", data =total_attacks_plus_location_total) %>%
+                   # confirmed_attacks %>% collect()) %>%
       clearShapes() %>%
-      addCircles(~longitude, ~latitude, radius=radius, layerId=~eventid,
-                 stroke=FALSE, fillOpacity=0.4) %>%
-      addLegend("bottomleft", pal=pal, values=colorData, title=colorBy,
-                layerId="colorLegend")
+      addHeatmap(~longitude, ~latitude, intensity = ~LocationTotal,
+                 blur = 20, max = 0.05, radius = 15)
+      #addCircles(~longitude, ~latitude,
+      #           radius = ~sqrt(TotalConfirmedAttacks) * 30, 
+      #           #layerId=~eventid,
+       #          stroke=FALSE, fillOpacity=0.4, color = ~pal(attacktype1_txt)) 
+    #%>%
+      #addLegend("bottomleft", pal=pal, values=attacktype1_txt, title='Type Of Attack',
+       #         layerId="colorLegend")
   })
 
   
   # Show a popup at the given location. Need to define a custom popup for
   # when someone clicks a particular event. Some high level info
-  showZipcodePopup <- function(zipcode, lat, lng) {
-    selectedEvent <- gtd_tbl %>%
-      filter(eventid = eventid)
-    content <- as.character(tagList(
-      tags$h4("Score:", as.integer(selectedZip$centile)),
-      tags$strong(HTML(sprintf("%s, %s %s",
-                               selectedZip$city.x, selectedZip$state.x, selectedZip$zipcode
-      ))), tags$br(),
-      sprintf("Median household income: %s", dollar(selectedZip$income * 1000)), tags$br(),
-      sprintf("Percent of adults with BA: %s%%", as.integer(selectedZip$college)), tags$br(),
-      sprintf("Adult population: %s", selectedZip$adultpop)
-    ))
-    leafletProxy("map") %>% addPopups(lng, lat, content, layerId = zipcode)
-  }
+  #showZipcodePopup <- function(zipcode, lat, lng) {
+  #  selectedEvent <- gtd_tbl %>%
+  #    filter(eventid = eventid)
+  #  content <- as.character(tagList(
+  #    tags$h4("Score:", as.integer(selectedZip$centile)),
+  #    tags$strong(HTML(sprintf("%s, %s %s",
+  #                             selectedZip$city.x, selectedZip$state.x, selectedZip$zipcode
+  #    ))), tags$br(),
+  #    sprintf("Median household income: %s", dollar(selectedZip$income * 1000)), tags$br(),
+  #    sprintf("Percent of adults with BA: %s%%", as.integer(selectedZip$college)), tags$br(),
+  #    sprintf("Adult population: %s", selectedZip$adultpop)
+  #  ))
+  #  leafletProxy("map") %>% addPopups(lng, lat, content, layerId = zipcode)
+  #}
   
   # When map is clicked, show a popup with city info
   observe({
