@@ -8,7 +8,7 @@ library(dplyr)
 
 confirmed_db <- tbl(get_gtddb,"events")
 confirmed_attacks <- confirmed_db %>%
-  select(iyear,imonth,iday,country_txt,provstate,city,latitude,longitude,attacktype1_txt,targtype1,
+  select(eventid,iyear,imonth,iday,country_txt,provstate,city,latitude,longitude,attacktype1_txt,targtype1,
          targtype1_txt,claimed,property,propextent,propvalue,doubtterr,success,gname) %>%
   rename(Year=iyear,Country=country_txt) %>%
   filter(doubtterr==0 & success==1) %>%
@@ -51,8 +51,8 @@ total_telecom_and_utility_attacks <- confirmed_attacks %>%
   rename(TotalTelecomAndUtilityAttacks = n)
 
 total_property_damage <- confirmed_attacks %>%
-  select(Year,imonth,iday,attacktype1_txt,property,propextent,propvalue,latitude,longitude) %>%
-  rename(Month = imonth, Day = iday, PropertyDamage = propvalue, AttackType = attacktype1_txt) %>%
+  select(eventid,Year,imonth,iday,attacktype1_txt,property,propextent,propvalue,latitude,longitude,gname) %>%
+  rename(Month = imonth, Day = iday, PropertyDamage = propvalue, AttackType = attacktype1_txt, PerpetratorGroup = gname) %>%
   filter(property=="1" & propextent %in% c("1","2")) %>%
   mutate(
     PropertyDamage = if_else(PropertyDamage == "", NA_character_, PropertyDamage)
@@ -65,6 +65,8 @@ total_property_damage <- confirmed_attacks %>%
     PropertyDamageText = case_when(
       is.na(PropertyDamage) && propextent == "1" ~ "> $1000000000",
       is.na(PropertyDamage) && propextent == "2" ~ "Between $1000000 and $100000000",
+      PropertyDamage == "-99" && propextent == "1" ~ "> $1000000000",
+      PropertyDamage == "-99" && propextent == "2" ~ "Between $1000000 and $100000000",
       TRUE ~ paste("$",PropertyDamage,sep="")
     )
   ) 
@@ -106,7 +108,7 @@ function(input, output, session) {
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
-      setView(lat = 35.13, lng = -77.3394481, zoom = 3)
+      setView(lat = 35.13, lng = -71.3394481, zoom = 3)
   })
   
   # mapselection <- reactive((
@@ -213,7 +215,10 @@ function(input, output, session) {
           #addHeatmap(~longitude, ~latitude, intensity = ~PropertyDamage,
           #           #intensity = ~LocationTotal,
           #           blur = 20, max = 0.05, radius = 15)
-          addMarkers(~longitude, ~latitude,
+          addMarkers(~longitude, ~latitude, layerId = ~eventid, 
+                     popup = paste("<b>",get_totals_property_damage$AttackType,"</b>",
+                                   "</br>","Attack Date: ",get_totals_property_damage$AttackDate,"</br>","Perpetrator/Group: ",get_totals_property_damage$PerpetratorGroup,
+                                   "</br>","Estimated Damage: ",get_totals_property_damage$PropertyDamageText),
             clusterOptions = markerClusterOptions()
           )
           #addCircles(~longitude, ~latitude,

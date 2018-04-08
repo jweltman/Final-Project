@@ -8,7 +8,7 @@ vars <- c(
   "Total Successful Attacks" = "LocationTotal",
   # "Total Attacks By Decade" = "TotalSuccessfulAttacks_Decade",
   # "Attacks Against Telecom and Utilities" = "TotalTelecomAndUtilityAttacks",
-  "Total Property Damage" = "PropertyDamage"
+  "Attacks Resulting in $1,000,000 + In Property Damage" = "PropertyDamage"
 )
 
 navbarPage("Global Terrorism DB", id="nav",
