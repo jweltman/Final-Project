@@ -35,20 +35,20 @@ total_attacks_by_decade <- confirmed_attacks %>%
     Year >= 2000 & Year < 2010 ~ "2000s",
     Year >= 2010 ~ "2010s"
   )) %>%
-  group_by(Decade,Country) %>%
+  group_by(Decade,Country,latitude,longitude) %>%
   tally() %>%
   rename(TotalSuccessfulAttacks_Decade = n)
 
-total_telecom_and_utility_attacks <- confirmed_attacks %>%
-  select(Year,imonth,iday,targtype1,targtype1_txt,gname,latitude,longitude,attacktype1_txt) %>%
-  rename(Month = imonth, Day = iday, TargetType=targtype1_txt, PerpetratorGroup = gname, AttackType = attacktype1_txt) %>%
-  filter(!is.na(latitude) & targtype1 %in% c("16","21")) %>%
-  mutate(AttackDate = case_when(
-    Day == "0" ~ paste(Year,"-", Month, sep=""),
-    Day != "0" ~ paste(Year, "-", Month, "-", Day, sep="")
-  )) %>%
-  tally() %>%
-  rename(TotalTelecomAndUtilityAttacks = n)
+# total_telecom_and_utility_attacks <- confirmed_attacks %>%
+#  select(Year,imonth,iday,targtype1,targtype1_txt,gname,latitude,longitude,attacktype1_txt) %>%
+#  rename(Month = imonth, Day = iday, TargetType=targtype1_txt, PerpetratorGroup = gname, AttackType = attacktype1_txt) %>%
+#  filter(!is.na(latitude) & targtype1 %in% c("16","21")) %>%
+#  mutate(AttackDate = case_when(
+#    Day == "0" ~ paste(Year,"-", Month, sep=""),
+#    Day != "0" ~ paste(Year, "-", Month, "-", Day, sep="")
+#  )) %>%
+#  tally() %>%
+#  rename(TotalTelecomAndUtilityAttacks = n)
 
 total_property_damage <- confirmed_attacks %>%
   select(eventid,Year,imonth,iday,attacktype1_txt,property,propextent,propvalue,latitude,longitude,gname) %>%
@@ -74,7 +74,7 @@ total_property_damage <- confirmed_attacks %>%
 get_totals <- collect(confirmed_attacks)
 get_totals_by_country <- collect(total_attacks_by_country)
 get_totals_by_decade <- collect(total_attacks_by_decade)
-get_totals_telecom_and_utility <- collect(total_telecom_and_utility_attacks)
+# get_totals_telecom_and_utility <- collect(total_telecom_and_utility_attacks)
 get_totals_property_damage <- collect(total_property_damage)
 get_totals_property_radius <- get_totals_property_damage %>%
   mutate(
@@ -201,50 +201,34 @@ function(input, output, session) {
 
       if (input$select_map == "LocationTotal") {
         leafletProxy("map", data = total_attacks_plus_location_total) %>%
-          # confirmed_attacks %>% collect()) %>%
           clearShapes() %>%
           clearHeatmap() %>%
+          clearMarkers() %>%
+          clearMarkerClusters() %>%
           addHeatmap(~longitude, ~latitude, intensity = ~LocationTotal,
-                     #intensity = ~LocationTotal,
                      blur = 20, max = 0.05, radius = 15)
-      } else {
+      } else if(input$select_map == "PropertyDamage") {
         leafletProxy("map", data = get_totals_property_damage) %>%
-          # confirmed_attacks %>% collect()) %>%
           clearShapes() %>%
           clearHeatmap() %>%
-          #addHeatmap(~longitude, ~latitude, intensity = ~PropertyDamage,
-          #           #intensity = ~LocationTotal,
-          #           blur = 20, max = 0.05, radius = 15)
+          clearMarkers() %>%
+          clearMarkerClusters() %>%
           addMarkers(~longitude, ~latitude, layerId = ~eventid, 
                      popup = paste("<b>",get_totals_property_damage$AttackType,"</b>",
                                    "</br>","Attack Date: ",get_totals_property_damage$AttackDate,"</br>","Perpetrator/Group: ",get_totals_property_damage$PerpetratorGroup,
                                    "</br>","Estimated Damage: ",get_totals_property_damage$PropertyDamageText),
             clusterOptions = markerClusterOptions()
           )
-          #addCircles(~longitude, ~latitude,
-          #         radius = ~PropertyDamageRadius, 
-                   #layerId=~eventid,
-          #        weight=1, fillOpacity=0.4, fillColor = ~prop_pal(AttackType))
+      } else {
+        leafletProxy("map", data = get_totals_by_decade[get_totals_by_decade$Decade==input$DecadeSelection,]) %>%
+          clearShapes() %>%
+          clearHeatmap() %>%
+          clearMarkers() %>%
+          clearMarkerClusters() %>%
+          addHeatmap(~longitude, ~latitude, intensity = ~Decade,
+                     blur = 20, max = 0.05, radius = 15)
       }
-      #} else if (input$select_map == "TotalTelecomAndUtilityAttacks") {
-      #  data_subset <- "get_totals_telecom_and_utility"  
-      #} else {
-      #  data_subset <- "get_totals_property_damage"
-      #}
- #   leafletProxy("map", data = data_subset) %>%
-  #                 # confirmed_attacks %>% collect()) %>%
-   #   clearShapes() %>%
-    #  addHeatmap(~longitude, ~latitude, intensity = input$select_map,
-     #            #intensity = ~LocationTotal,
-      #           blur = 20, max = 0.05, radius = 15)
-      #addCircles(~longitude, ~latitude,
-      #           radius = ~sqrt(TotalConfirmedAttacks) * 30, 
-      #           #layerId=~eventid,
-       #          stroke=FALSE, fillOpacity=0.4, color = ~pal(attacktype1_txt)) 
-    #%>%
-      #addLegend("bottomleft", pal=pal, values=attacktype1_txt, title='Type Of Attack',
-       #         layerId="colorLegend")
-  })
+})
 
   
   # Show a popup at the given location. Need to define a custom popup for
