@@ -11,8 +11,8 @@ library(dplyr)
 
 confirmed_db <- tbl(get_gtddb,"events")
 confirmed_attacks <- confirmed_db %>%
-  select(iyear,country_txt,provstate,city,latitude,longitude,attacktype1_txt,targtype1,
-         targtype1_txt,claimed,property,propvalue, doubtterr, success) %>%
+  select(iyear,imonth,iday,country_txt,provstate,city,latitude,longitude,attacktype1_txt,targtype1,
+         targtype1_txt,claimed,property,propextent,propvalue,doubtterr,success,gname) %>%
   rename(Year=iyear,Country=country_txt) %>%
   filter(doubtterr==0 & success==1) %>%
   select(-doubtterr,-success)
@@ -35,13 +35,47 @@ total_attacks_by_decade <- confirmed_attacks %>%
   tally() %>%
   rename(TotalSuccessfulAttacks = n)
 
+total_telecom_and_utility_attacks <- confirmed_attacks %>%
+  select(Year,imonth,iday,targtype1,targtype1_txt,gname,latitude,longitude,attacktype1_txt) %>%
+  rename(Month = imonth, Day = iday, TargetType=targtype1_txt, PerpetratorGroup = gname, AttackType = attacktype1_txt) %>%
+  filter(!is.na(latitude) & targtype1 %in% c("16","21")) %>%
+  mutate(AttackDate = case_when(
+    Day == "0" ~ paste(Year,"-", Month, sep=""),
+    Day != "0" ~ paste(Year, "-", Month, "-", Day, sep="")
+  ))
+
+total_property_damage <- confirmed_attacks %>%
+  select(Year,imonth,iday,attacktype1_txt,property,propextent,propvalue) %>%
+  rename(Month = imonth, Day = iday, PropertyDamage = propvalue, AttackType = attacktype1_txt) %>%
+  filter(property=="1" & propextent %in% c("1","2")) %>%
+  mutate(
+    PropertyDamage = if_else(PropertyDamage == "", NA_character_, PropertyDamage),
+    AttackDate = case_when(
+      Day == "0" ~ paste(Year,"-", Month, sep=""),
+      Day != "0" ~ paste(Year, "-", Month, "-", Day, sep="")),
+    PropertyDamage = case_when(
+      is.na(PropertyDamage) && propextent == "1" ~ "> $1000000000",
+      is.na(PropertyDamage) && propextent == "2" ~ "Between $1000000 and $100000000",
+      TRUE ~ paste("$",PropertyDamage,sep="")
+    )
+  )
+  
 get_totals <- collect(total_attacks)
 get_totals_by_country <- collect(total_attacks_by_country)
 get_totals_by_decade <- collect(total_attacks_by_decade)
+get_totals_telecome_and_utility <- collect(total_telecom_and_utility_attacks)
+get_totals_property_damage <- collect(total_property_damage)
 
 function(input, output, session) {
   
   ## Interactive Map ###########################################
+  
+  # Define color palette for attacks
+  
+  pal <- colorFactor(
+    palette = 'Dark2',
+    domain = map$attacktype1_txt
+  )
   
   # Create the map
   output$map <- renderLeaflet({
