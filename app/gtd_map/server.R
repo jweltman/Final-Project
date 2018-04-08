@@ -6,11 +6,6 @@ library(scales)
 library(lattice)
 library(dplyr)
 
-# couldn't make connection, so commenting some snippits below out in case it doesn't work on tbl, ha!
-
-# gtd_tbl <- get_gtddb() %>%
-#  tbl("events") 
-
 confirmed_db <- tbl(get_gtddb,"events")
 confirmed_attacks <- confirmed_db %>%
   select(iyear,imonth,iday,country_txt,provstate,city,latitude,longitude,attacktype1_txt,targtype1,
@@ -20,7 +15,6 @@ confirmed_attacks <- confirmed_db %>%
   filter(!is.na(latitude)) %>%
   select(-doubtterr,-success)
 
- 
 total_attacks_by_country <- confirmed_attacks %>%
   group_by(Country) %>%
   tally() %>%
@@ -106,7 +100,7 @@ function(input, output, session) {
 #    domain = get_totals_property_damage$AttackType
 #  )
 
-  prop_pal <- colorFactor(viridis(7), get_totals_property_radius$AttackType)
+#  prop_pal <- colorFactor(viridis(7), get_totals_property_radius$AttackType)
     
   # Create the map
   output$map <- renderLeaflet({
@@ -212,7 +206,7 @@ function(input, output, session) {
                      #intensity = ~LocationTotal,
                      blur = 20, max = 0.05, radius = 15)
       } else {
-        leafletProxy("map", data = get_totals_property_radius) %>%
+        leafletProxy("map", data = get_totals_property_damage) %>%
           # confirmed_attacks %>% collect()) %>%
           clearShapes() %>%
           clearHeatmap() %>%
