@@ -32,7 +32,7 @@ total_attacks_by_location <- confirmed_attacks %>%
   rename(LocationTotal = n)
 
 total_attacks_by_decade <- confirmed_attacks %>%
-  select(Year,Country) %>%
+  select(Year,Country,latitude,longitude) %>%
   mutate(Decade = case_when(
     Year >= 1970 & Year < 1980 ~ "1970s",
     Year >= 1980 & Year < 1990 ~ "1980s",
@@ -42,7 +42,7 @@ total_attacks_by_decade <- confirmed_attacks %>%
   )) %>%
   group_by(Decade,Country) %>%
   tally() %>%
-  rename(TotalSuccessfulAttacks = n)
+  rename(TotalSuccessfulAttacks_Decade = n)
 
 total_telecom_and_utility_attacks <- confirmed_attacks %>%
   select(Year,imonth,iday,targtype1,targtype1_txt,gname,latitude,longitude,attacktype1_txt) %>%
@@ -51,10 +51,12 @@ total_telecom_and_utility_attacks <- confirmed_attacks %>%
   mutate(AttackDate = case_when(
     Day == "0" ~ paste(Year,"-", Month, sep=""),
     Day != "0" ~ paste(Year, "-", Month, "-", Day, sep="")
-  ))
+  )) %>%
+  tally() %>%
+  rename(TotalTelecomAndUtilityAttacks = n)
 
 total_property_damage <- confirmed_attacks %>%
-  select(Year,imonth,iday,attacktype1_txt,property,propextent,propvalue) %>%
+  select(Year,imonth,iday,attacktype1_txt,property,propextent,propvalue,latitude,longitude) %>%
   rename(Month = imonth, Day = iday, PropertyDamage = propvalue, AttackType = attacktype1_txt) %>%
   filter(property=="1" & propextent %in% c("1","2")) %>%
   mutate(
@@ -72,12 +74,13 @@ total_property_damage <- confirmed_attacks %>%
 get_totals <- collect(confirmed_attacks)
 get_totals_by_country <- collect(total_attacks_by_country)
 get_totals_by_decade <- collect(total_attacks_by_decade)
-get_totals_telecome_and_utility <- collect(total_telecom_and_utility_attacks)
+get_totals_telecom_and_utility <- collect(total_telecom_and_utility_attacks)
 get_totals_property_damage <- collect(total_property_damage)
 get_totals_by_location <- collect(total_attacks_by_location)
 
 # total_attacks_plus_cntry_total <- merge(x=get_totals,y=get_totals_by_country, by="Country", all.x=TRUE)
 total_attacks_plus_location_total <- merge(x=get_totals,y=get_totals_by_location, by=c("latitude","longitude"), all.x=TRUE)
+# total_attacks_plus_location_decade <- merge(x=get_totals_by_decade,y=get_totals_by_location, by="Country")
 
 function(input, output, session) {
   
@@ -97,6 +100,23 @@ function(input, output, session) {
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
       setView(lat = 29.119758, lng = -171.594481, zoom = 2)
   })
+  
+  # mapselection <- reactive((
+  #  input$select_map
+  # ))
+  
+  #data_subset <- "total_attacks_plus_location_total"
+  #data_subset <- reactive((
+  #if (input$select_map == "TotalSuccessfulAttacks") {
+  #  data_subset <- "total_attacks_plus_location_total"
+  #} else if (input$select_map == "TotalSuccessfulAttacks_Decade") {
+  #  data_subset <- "get_totals_by_decade"
+  #} else if (input$select_map == "TotalTelecomAndUtilityAttacks") {
+  #  data_subset <- "get_totals_telecom_and_utility"  
+  #} else {
+  #  data_subset <- "get_totals_property_damage"
+  #}
+  #))
   
   #   hist(zipsInBounds()$centile,
   # A reactive expression that returns the set of zips that are
@@ -140,6 +160,19 @@ function(input, output, session) {
   # This observer is responsible for maintaining the circles and legend,
   # according to the variables the user has chosen to map to color and size.
   observe({
+    #data_subset <- "total_attacks_plus_location_total"
+    #data_subset <-
+    #  if (input$select_map == "TotalSuccessfulAttacks") {
+    #  data_subset <- "total_attacks_plus_location_total"
+    #} else if (input$select_map == "TotalSuccessfulAttacks_Decade") {
+    #  data_subset <- "get_totals_by_decade"
+    #} else if (input$select_map == "TotalTelecomAndUtilityAttacks") {
+    #  data_subset <- "get_totals_telecom_and_utility"  
+    #} else {
+    #  data_subset <- "get_totals_property_damage"
+    #}
+    
+    
   #  colorBy <- input$color
   #  sizeBy <- input$size
   #
@@ -156,11 +189,32 @@ function(input, output, session) {
     
   #  radius <- sizeData / max(sizeData) * 30000
 
-    leafletProxy("map", data =total_attacks_plus_location_total) %>%
-                   # confirmed_attacks %>% collect()) %>%
-      clearShapes() %>%
-      addHeatmap(~longitude, ~latitude, intensity = ~LocationTotal,
-                 blur = 20, max = 0.05, radius = 15)
+      if (input$select_map == "LocationTotal") {
+        leafletProxy("map", data = total_attacks_plus_location_total) %>%
+          # confirmed_attacks %>% collect()) %>%
+          clearShapes() %>%
+          addHeatmap(~longitude, ~latitude, intensity = ~LocationTotal,
+                     #intensity = ~LocationTotal,
+                     blur = 20, max = 0.05, radius = 15)
+      } else {
+        leafletProxy("map", data = get_totals_property_damage) %>%
+          # confirmed_attacks %>% collect()) %>%
+          clearShapes() %>%
+          addHeatmap(~longitude, ~latitude, intensity = ~PropertyDamage,
+                     #intensity = ~LocationTotal,
+                     blur = 20, max = 0.05, radius = 15)
+      }
+      #} else if (input$select_map == "TotalTelecomAndUtilityAttacks") {
+      #  data_subset <- "get_totals_telecom_and_utility"  
+      #} else {
+      #  data_subset <- "get_totals_property_damage"
+      #}
+ #   leafletProxy("map", data = data_subset) %>%
+  #                 # confirmed_attacks %>% collect()) %>%
+   #   clearShapes() %>%
+    #  addHeatmap(~longitude, ~latitude, intensity = input$select_map,
+     #            #intensity = ~LocationTotal,
+      #           blur = 20, max = 0.05, radius = 15)
       #addCircles(~longitude, ~latitude,
       #           radius = ~sqrt(TotalConfirmedAttacks) * 30, 
       #           #layerId=~eventid,
