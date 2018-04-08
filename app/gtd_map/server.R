@@ -28,6 +28,7 @@ total_attacks_by_location <- confirmed_attacks %>%
 
 total_attacks_by_decade <- confirmed_attacks %>%
   select(Year,Country,latitude,longitude) %>%
+  filter(!is.na(latitude)) %>%
   mutate(Decade = case_when(
     Year >= 1970 & Year < 1980 ~ "1970s",
     Year >= 1980 & Year < 1990 ~ "1980s",
@@ -58,6 +59,7 @@ total_property_damage <- confirmed_attacks %>%
     PropertyDamage = if_else(PropertyDamage == "", NA_character_, PropertyDamage)
   ) %>%
   filter(!is.na(PropertyDamage)) %>%
+  filter(!is.na(latitude)) %>%
   mutate(
     AttackDate = case_when(
       Day == "0" ~ paste(Year,"-", Month, sep=""),
@@ -69,7 +71,7 @@ total_property_damage <- confirmed_attacks %>%
       PropertyDamage == "-99" && propextent == "2" ~ "Between $1000000 and $100000000",
       TRUE ~ paste("$",PropertyDamage,sep="")
     )
-  ) 
+  )
   
 get_totals <- collect(confirmed_attacks)
 get_totals_by_country <- collect(total_attacks_by_country)
