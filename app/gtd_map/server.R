@@ -1,5 +1,6 @@
 library(leaflet)
 library(leaflet.extras)
+library(viridis)
 library(RColorBrewer)
 library(scales)
 library(lattice)
@@ -60,22 +61,33 @@ total_property_damage <- confirmed_attacks %>%
   rename(Month = imonth, Day = iday, PropertyDamage = propvalue, AttackType = attacktype1_txt) %>%
   filter(property=="1" & propextent %in% c("1","2")) %>%
   mutate(
-    PropertyDamage = if_else(PropertyDamage == "", NA_character_, PropertyDamage),
+    PropertyDamage = if_else(PropertyDamage == "", NA_character_, PropertyDamage)
+  ) %>%
+  filter(!is.na(PropertyDamage)) %>%
+  mutate(
     AttackDate = case_when(
       Day == "0" ~ paste(Year,"-", Month, sep=""),
       Day != "0" ~ paste(Year, "-", Month, "-", Day, sep="")),
-    PropertyDamage = case_when(
+    PropertyDamageText = case_when(
       is.na(PropertyDamage) && propextent == "1" ~ "> $1000000000",
       is.na(PropertyDamage) && propextent == "2" ~ "Between $1000000 and $100000000",
       TRUE ~ paste("$",PropertyDamage,sep="")
     )
-  )
+  ) 
   
 get_totals <- collect(confirmed_attacks)
 get_totals_by_country <- collect(total_attacks_by_country)
 get_totals_by_decade <- collect(total_attacks_by_decade)
 get_totals_telecom_and_utility <- collect(total_telecom_and_utility_attacks)
 get_totals_property_damage <- collect(total_property_damage)
+get_totals_property_radius <- get_totals_property_damage %>%
+  mutate(
+    PropertyDamageRadius = case_when(
+      PropertyDamage <= "0" ~ "1",
+      propextent == "1" ~ as.character(as.numeric((PropertyDamage) / 1000000)),
+      propextent == "2" ~ as.character(as.numeric((PropertyDamage) / 1000))
+    )
+  )
 get_totals_by_location <- collect(total_attacks_by_location)
 
 # total_attacks_plus_cntry_total <- merge(x=get_totals,y=get_totals_by_country, by="Country", all.x=TRUE)
@@ -88,17 +100,19 @@ function(input, output, session) {
   
   # Define color palette for attacks
   
-  pal <- colorFactor(
-    #palette = 'Dark2',
-    palette = c('red','blue','green','purple','orange','pink','yellow','brown','gray'),
-    domain = confirmed_attacks$attacktype1_txt
-  )
-  
+ # pal <- colorFactor(
+#    #palette = 'Dark2',
+#    palette = c('red','blue','green','purple','orange','pink','yellow','brown','gray'),
+#    domain = get_totals_property_damage$AttackType
+#  )
+
+  prop_pal <- colorFactor(viridis(7), get_totals_property_radius$AttackType)
+    
   # Create the map
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
-      setView(lat = 29.119758, lng = -171.594481, zoom = 2)
+      setView(lat = 35.13, lng = -77.3394481, zoom = 3)
   })
   
   # mapselection <- reactive((
@@ -193,16 +207,25 @@ function(input, output, session) {
         leafletProxy("map", data = total_attacks_plus_location_total) %>%
           # confirmed_attacks %>% collect()) %>%
           clearShapes() %>%
+          clearHeatmap() %>%
           addHeatmap(~longitude, ~latitude, intensity = ~LocationTotal,
                      #intensity = ~LocationTotal,
                      blur = 20, max = 0.05, radius = 15)
       } else {
-        leafletProxy("map", data = get_totals_property_damage) %>%
+        leafletProxy("map", data = get_totals_property_radius) %>%
           # confirmed_attacks %>% collect()) %>%
           clearShapes() %>%
-          addHeatmap(~longitude, ~latitude, intensity = ~PropertyDamage,
-                     #intensity = ~LocationTotal,
-                     blur = 20, max = 0.05, radius = 15)
+          clearHeatmap() %>%
+          #addHeatmap(~longitude, ~latitude, intensity = ~PropertyDamage,
+          #           #intensity = ~LocationTotal,
+          #           blur = 20, max = 0.05, radius = 15)
+          addMarkers(~longitude, ~latitude,
+            clusterOptions = markerClusterOptions()
+          )
+          #addCircles(~longitude, ~latitude,
+          #         radius = ~PropertyDamageRadius, 
+                   #layerId=~eventid,
+          #        weight=1, fillOpacity=0.4, fillColor = ~prop_pal(AttackType))
       }
       #} else if (input$select_map == "TotalTelecomAndUtilityAttacks") {
       #  data_subset <- "get_totals_telecom_and_utility"  
@@ -243,16 +266,16 @@ function(input, output, session) {
   #}
   
   # When map is clicked, show a popup with city info
-  observe({
-    leafletProxy("map") %>% clearPopups()
-    event <- input$map_shape_click
-    if (is.null(event))
-      return()
-    
-    isolate({
-      showZipcodePopup(event$id, event$lat, event$lng)
-    })
-  })
+ # observe({
+  #  leafletProxy("map") %>% clearPopups()
+  #  event <- input$map_shape_click
+  #  if (is.null(event))
+  #    return()
+  #  
+  #  isolate({
+  #    showZipcodePopup(event$id, event$lat, event$lng)
+  #  })
+  # })
   
   
   ## Data Explorer ###########################################
