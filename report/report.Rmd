@@ -1,0 +1,41 @@
+---
+title: "What the SAAS?"
+author: "Jordan Kassof and Jeff Weltman"
+date: "4/8/2018"
+output: html_document
+---
+
+## Introduction
+
+Software as a service (SAAS) is a business model that has become very familiar to most people. Many of the interactions we have with some of the most popular corporations is through a SAAS business model. Whether its for entertainment (Netflix/Hulu/AmazonPrime), socialization (Facebook/Twitter/Snapchat), financial management (Mint/Betterment), more and more firms are looking to deliver their products/services through a SAAS model.
+
+All that being said, what is a SAAS? It's such a buzzword today, but do most regular folks really get what that means? To better understand the nature of this increasingly common arrangement, we seek to implement a small application that leverages some of the key technological components of a SAAS.
+
+## Implementation Plans
+
+### Infrastrucutre
+
+Some comments about the AWS infrastructure planned. How it could be converted into a SAAS where you write aws CLI scripts that allow you to spin up new EC2 instances to host the applications for particular clients. Bring in AWS diagram from proposal.
+
+### Data
+
+Some comments about the GTD data.
+
+### Application
+
+Some comments about R/Shiny/Leaflet/mapping applications. 
+
+## Results
+
+### AWS Application Infrastructure
+
+Some screenshots and comments about actually putting everything together. Including some more detailed commentary about the networking and security side of stuff.
+
+### Data & Application
+
+Some screenshots and commentary about the application.
+
+## Further development
+
+Ideas about further development like integrating authentication which would allow you to give different clients access to their own data because you know who is logged in. Some further ideas for app development.
+
