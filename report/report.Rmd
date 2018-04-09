@@ -22,7 +22,9 @@ While there are many cloud service providers, Amazon has by far the most service
 
 ### Data
 
-Some comments about the GTD data.
+The Global Terrorism Database - hereafter referred to as GTD - is an open-source database of domestic, transnational, and international terrorist incidents. This database contains credibly sourced information regarding over 170,000 terrorist incidents from 1970 through 2016. For recent incidents, this data includes 135 quantitative and categorical variables describing all manner of information regarding the incident itself. These points include information regarding the weapons used, number of fatalities, amount of property damage involved, and whether any organization or individual(s) claimed credit for the incident. The majority of these cases are bombings, assassinations, and kidnappings. The GTD is maintained by the University of Maryland's *National Consortium for the Study of Terrorism and Responses to Terrorism (START).* START makes the data available both to government representatives and any interested parties.
+
+We opted to filter the data to only consider those incidents which were both confirmed acts of terrorism and were successfully executed. Furthermore, for data visualization, we excluded those events which did not have latitude and longitude coordinates. This brought the number of incidents examined down from over 170,000 to roughly 113,000. Thus the app detailed below demonstrates visualization methods for displaying confirmed and successful terrorist incidents for which precise geographical information was available.
 
 ### Application
 
