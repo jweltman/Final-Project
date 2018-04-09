@@ -6,9 +6,17 @@ vars <- c(
   # "# of Fatalities" = "nkill",
   # "Attack Type" = "attacktype1_txt"
   "Total Successful Attacks" = "LocationTotal",
-  # "Total Attacks By Decade" = "TotalSuccessfulAttacks_Decade",
+  "Total Attacks By Decade" = "TotalSuccessfulAttacks_Decade",
   # "Attacks Against Telecom and Utilities" = "TotalTelecomAndUtilityAttacks",
-  "Total Property Damage" = "PropertyDamage"
+  "Attacks Resulting in $1,000,000 + In Property Damage" = "PropertyDamage"
+)
+
+decades <- c(
+  "1970s" = "1970s",
+  "1980s" = "1980s",
+  "1990s" = "1990s",
+  "2000s" = "2000s",
+  "2010s" = "2010s"
 )
 
 navbarPage("Global Terrorism DB", id="nav",
@@ -27,7 +35,10 @@ navbarPage("Global Terrorism DB", id="nav",
                       
                       h2("GTD Explorer"),
                       
-                      selectInput("select_map", "Please select the data set:", vars, selected="Total Successful Attacks")
+                      selectInput("select_map", "Please select the data set:", vars, selected="Total Successful Attacks"),
+                      conditionalPanel("input.select_map == 'TotalSuccessfulAttacks_Decade'",
+                                       # Only prompt for decade when selecting decade data
+                                       selectInput("DecadeSelection", "Please select a decade:", decades, selected="1970s"))
                       #,
                       #selectInput("size", "Size", vars, selected = "nkill"),
                       #conditionalPanel("input.color == 'superzip' || input.size == 'superzip'",
